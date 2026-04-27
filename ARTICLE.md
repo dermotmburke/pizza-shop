@@ -1,10 +1,10 @@
-# Distributed Logging and Tracing with Spring Boot 3 and Kafka
+# Distributed Logging and Tracing with Spring Boot 4 and Kafka
 
-In recent years, microservices architecture has gained widespread popularity as a way to develop complex software systems. The concept of breaking down large monolithic applications into smaller, independently deployable services has allowed developers to increase agility by decoupling feature delivery. However, with the benefits of microservices come many challenges, especially when it comes to tracing the flow of data and requests between services. Distributed tracing is a technique that helps developers understand the behavior of complex systems by providing visibility into the path of a request as it moves through various services. This article will focus on distributed tracing in Kafka microservices. Kafka has become a popular choice for building distributed systems due to its ability to handle large volumes of data and its support for real-time data processing. What follows is a detailed example of how to wire Micrometer and Brave in Spring Boot 3 Kafka applications to enable distributed tracing and log correlation.
+In recent years, microservices architecture has gained widespread popularity as a way to develop complex software systems. The concept of breaking down large monolithic applications into smaller, independently deployable services has allowed developers to increase agility by decoupling feature delivery. However, with the benefits of microservices come many challenges, especially when it comes to tracing the flow of data and requests between services. Distributed tracing is a technique that helps developers understand the behavior of complex systems by providing visibility into the path of a request as it moves through various services. This article will focus on distributed tracing in Kafka microservices. Kafka has become a popular choice for building distributed systems due to its ability to handle large volumes of data and its support for real-time data processing. What follows is a detailed example of how to wire Micrometer and Brave in Spring Boot 4 Kafka applications to enable distributed tracing and log correlation.
 
 ## A Quick Word About Spring Cloud Sleuth
 
-Until recently, Spring Boot tracing functionality was provided by the Spring Cloud Sleuth project (https://github.com/spring-cloud/spring-cloud-sleuth). As of Spring Boot 3, this functionality has been moved to the Micrometer Tracing (https://micrometer.io/docs/tracing) project to consolidate the work.
+Until recently, Spring Boot tracing functionality was provided by the Spring Cloud Sleuth project (https://github.com/spring-cloud/spring-cloud-sleuth). As of Spring Boot 3, this functionality was moved to the Micrometer Tracing (https://micrometer.io/docs/tracing) project to consolidate the work. Spring Boot 4 continues this direction, extracting Brave auto-configuration into dedicated modules (`spring-boot-micrometer-tracing-brave`) and introducing a new `spring-boot-starter-zipkin` starter that replaces the previous combination of individual tracing dependencies.
 
 ## Micrometer
 
@@ -17,19 +17,18 @@ Brave (https://github.com/openzipkin/brave) is a distributed tracing instrumenta
 
 ## The Sample Application
 
-The sample application for this article is available on GitHub (https://github.com/contino/pizza-shop). The application is broken into 3 distinct services, there is a web-reciever that accepts pizza orders as JSON payloads and places them onto a Kafka topic, a transformer that uses Kafka Streams (https://docs.confluent.io/platform/current/streams/index.html) to augment the order information with the customer's address and a repository application which places orders into a local memory store. 
+The sample application for this article is available on GitHub (https://github.com/contino/pizza-shop). The application is built with Java 25 and Spring Boot 4, and is broken into 3 distinct services: a web-receiver that accepts pizza orders as JSON payloads and places them onto a Kafka topic, a transformer that uses Kafka Streams (https://docs.confluent.io/platform/current/streams/index.html) to augment the order information with the customer's address, and a repository application which places orders into a local memory store.
 
-To enable tracing using Micrometer and Brave, the applications include the following dependencies
+To enable tracing using Micrometer and Brave, the applications include the following dependencies. Note that in Spring Boot 4, Brave auto-configuration was extracted into the `spring-boot-starter-zipkin` starter — this replaces the need to declare `zipkin-reporter-brave` and `micrometer-tracing` individually.
 
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-actuator</artifactId>
 </dependency>
-...
 <dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-tracing</artifactId>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-zipkin</artifactId>
 </dependency>
 <dependency>
     <groupId>io.micrometer</groupId>
@@ -37,7 +36,7 @@ To enable tracing using Micrometer and Brave, the applications include the follo
 </dependency>
 ```
 
-As messages flow throw the system, any log messages written by the services will automatically be enhanced with a unique tracing identifier (`traceId`), the customer's identifier (`customerId`), and a unique order identifier (`orderId`). While the tracing identifier is provided automatically by brave, the other fields are configured as "Baggage" fields (see https://github.com/openzipkin/brave/blob/master/brave/RATIONALE.md#baggage). The following class performs the necessary setup for these baggage fields.
+As messages flow through the system, any log messages written by the services will automatically be enhanced with a unique tracing identifier (`traceId`), the customer's identifier (`customerId`), and a unique order identifier (`orderId`). While the tracing identifier is provided automatically by Brave, the other fields are configured as "Baggage" fields (see https://github.com/openzipkin/brave/blob/master/brave/RATIONALE.md#baggage). The following class performs the necessary setup for these baggage fields.
 
 ```java
 public class TracingConfig {
@@ -66,7 +65,6 @@ This class is included in the tracing library and is imported into each service 
 
 ```java
 @SpringBootApplication
-@AutoConfigureObservability
 @Import({TracingConfig.class}) // Required to setup Baggage fields
 public class WebReceiverApplication {
     public static void main(String[] args) {
@@ -75,7 +73,7 @@ public class WebReceiverApplication {
 }
 ```
 
-Further configuration is then provided in the common `application-tracing.yaml` which is imported into each service's `application.yaml` file.
+Further configuration is then provided in the common `application-tracing.yaml` which is imported into each service's `application.yaml` file. Note that in Spring Boot 4 the Zipkin endpoint property moved from `management.zipkin.tracing.endpoint` to `management.tracing.export.zipkin.endpoint`.
 
 ```yaml
 logging:
@@ -93,6 +91,9 @@ management:
         enabled: true
         fields: orderId, customerId
       remote-fields: orderId, customerId
+    export:
+      zipkin:
+        endpoint: http://zipkin:9411/api/v2/spans
 ```
 
 The above configuration enables tracing, sets the propagation type to b3 (Zipkin format), informs the system to sample all requests, and sets the `orderId` and `customerId` fields as both local and remote (meaning they will be transported between services as header metadata).
@@ -152,59 +153,80 @@ public class ReceiveController {
     }
 }
 ```
-The last piece of the puzzle in the web receiver is to set observation to enabled on the Spring `KafkaTemplate` instance that will be used by the application to post messages on the topic 
+
+The last piece of the puzzle in the web receiver is to set observation to enabled on the Spring `KafkaTemplate` instance. Note that in Spring Boot 4, `JsonSerializer` from `org.springframework.kafka.support.serializer` is deprecated in favour of `JacksonJsonSerializer`, which uses Jackson 3.
 
 ```java
 @Bean
-KafkaTemplate<String, Order> kafkaTemplate() {
-    KafkaTemplate<String, Order> kafkaTemplate = new KafkaTemplate<>(producerFactory());
+ProducerFactory<String, Order> producerFactory() {
+    Map<String, Object> configProps = new HashMap<>();
+    configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+    configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+    configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
+    return new DefaultKafkaProducerFactory<>(configProps);
+}
+
+@Bean
+KafkaTemplate<String, Order> kafkaTemplate(ProducerFactory<String, Order> producerFactory) {
+    KafkaTemplate<String, Order> kafkaTemplate = new KafkaTemplate<>(producerFactory);
     kafkaTemplate.setObservationEnabled(true);
     return kafkaTemplate;
 }
 ```
 
-Moving over to the transformer service, as well as importing the `TracingConfig` class with common spring and logback config, there are some other necessary additions we need to make to a Kafka streams application to enable the tracing functionality. 
+Moving over to the transformer service, the Kafka Streams configuration is straightforward. In Spring Boot 3, the Brave `KafkaStreamsTracing` wrapper was used to propagate trace context through Kafka Streams. However, `KafkaStreamsTracing` from Brave 6.x is incompatible with Kafka 4.x's updated `Consumer` interface, so plain `KafkaStreams` is used instead. Micrometer Observation handles the broader tracing integration.
 
 ```java
 @Bean
-KafkaStreamsTracing kafkaStreamsTracing(Tracing tracing) {
-    return KafkaStreamsTracing.create(tracing);
-}
-
-@Bean
-KafkaStreams kafkaStreams(TopologyService topologyService, KafkaStreamsTracing kafkaStreamsTracing) {
+KafkaStreams kafkaStreams(TopologyService topologyService) {
     Properties props = new Properties();
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
     props.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationName);
     props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-    props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, JsonSerde.class);
-    props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-    KafkaStreams kafkaStreams = kafkaStreamsTracing.kafkaStreams(topologyService.topology(), props);
+    props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, JacksonJsonSerde.class);
+    props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
+    KafkaStreams kafkaStreams = new KafkaStreams(topologyService.topology(), props);
     Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
     kafkaStreams.start();
     return kafkaStreams;
 }
 ```
 
-The configuration above instantiates an instance of the KafkaStreamsTracing class which we can use to create a wrapped instance of the KafkaStreams class. This wrapped instance automatically generates Kafka `poll` and `send` spans and transports them as part of the trace context to the Zipkin server. 
+Note that `JsonSerde` and `JsonDeserializer` from `org.springframework.kafka.support.serializer` are deprecated in Spring Kafka 4.x in favour of `JacksonJsonSerde` and `JacksonJsonDeserializer`.
 
-To enable log correlation on Kafka Streams Transformation and Processor implementations the current solution is unfortunately a little invasive. Currently, it is necessary to wrap each transformation or process operation in a call to KafkaStreamsTracing as below. 
+The topology itself uses the newer `processValues` API (introduced in KIP-820) instead of the deprecated `transformValues`:
 
 ```java
 public Topology topology() {
     var streamsBuilder = new StreamsBuilder();
     KStream<String, Order> messageStream = streamsBuilder.stream(serviceProperties.inbound().topic().topicName());
 
-    messageStream.transformValues(kafkaStreamsTracing.valueTransformer(OrderTransformer.class.getSimpleName(), transformer))
+    messageStream.processValues(processor)
             .to(serviceProperties.outbound().topic().topicName());
 
     return streamsBuilder.build();
 }
 ```
 
-Without the wrapping operation, any log messages written by the Transformer or Processor instance will not include the correlation information (traceId, customerId, etc...). Further information on the above can be found here https://github.com/openzipkin/brave/blob/master/instrumentation/kafka-streams/README.md. This is further complicated by the fact that the current Kstream's `process` and `transform` methods are being deprecated in favor of a more condensed API (see https://cwiki.apache.org/confluence/display/KAFKA/KIP-820%3A+Extend+KStream+process+with+new+Processor+API). A request for an update to Brave's KafkaStreamsTracing class has been raised (see https://github.com/openzipkin/brave/issues/1365).
+The final service in the application flow is the repository. Like the transformer, Brave's `KafkaTracing` consumer wrapper is not compatible with Kafka 4.x, so observation is enabled directly on the container factory instead:
 
-The final service in the application flow (which also includes the aforementioned import of the `TracingConfig` class and `application-tracing.yaml`) is relatively straightforward to configure. The service makes use of Spring's `@KafkaListener` annotation to trigger an operation to save the incoming order to a repository.
+```java
+@Bean
+ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
+    Map<String, Object> props = new HashMap<>();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JacksonJsonDeserializer.class);
+    props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
+    ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+    ConsumerFactory<String, String> consumerFactory = new DefaultKafkaConsumerFactory<>(props);
+    factory.setConsumerFactory(consumerFactory);
+    factory.getContainerProperties().setObservationEnabled(true);
+    return factory;
+}
+```
+
+The `@KafkaListener` itself remains unchanged:
 
 ```java
 @KafkaListener(id = "${service.topic.listener-id}", topics = "${service.topic.topic-name}")
@@ -214,33 +236,9 @@ public void insertOrder(Order order) {
 }
 ```
 
-To enable trace propagation it is necessary only to add a tracing `PostProcessor` to the instance of Spring's `DefaultKafkaConsumerFactory` and set ObservationEnabled to true.
-
-```java
-@Bean
-ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(KafkaTracing kafkaTracing) {
-    Map<String, Object> props = new HashMap<>();
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
-    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-    props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-    ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
-    ConsumerFactory<String, String> consumerFactory = new DefaultKafkaConsumerFactory<>(props);
-    consumerFactory.addPostProcessor(kafkaTracing::consumer);
-    factory.setConsumerFactory(consumerFactory);
-    factory.getContainerProperties().setObservationEnabled(true);
-    return factory;
-}
-
-@Bean
-KafkaTracing kafkaTracing(Tracing tracing) {
-    return KafkaTracing.create(tracing);
-}
-```
-
 ## Running The Application Stack
 
-A docker-compose file that includes Kafka, Zookeeper, Zipkin, Grafana, and the applications themselves, can be found in the root of the repository. To launch the stack simply run the following command in the root directory.
+A docker-compose file that includes Kafka, Zipkin, Grafana, and the applications themselves, can be found in the root of the repository. To launch the stack simply run the following command in the root directory.
 
 ```bash
 make up
@@ -252,7 +250,7 @@ This will install the required Loki Docker plugin (to enable log aggregation in 
 make test
 ```
 
-To view the logs, navigate to http://localhost:3000/dashboards, log in with the credentials "admin" / "admin" and click on "Pizza Shop" / "Pizza Shop Service Logs". Once there you should see something similar to the image below.
+To view the logs, navigate to http://localhost:3001/dashboards, log in with the credentials "admin" / "admin" and click on "Pizza Shop" / "Pizza Shop Service Logs". Once there you should see something similar to the image below.
 
 ![zipkin-home](images/grafana-logs.png)
 
@@ -275,5 +273,4 @@ To view the Kafka headers navigate to http://localhost:9093/ui/clusters/local/al
 
 In conclusion, distributed tracing is an essential tool for organizations implementing microservices architecture. The numerous benefits of distributed tracing include improved visibility into the system, faster problem resolution, and better end-to-end performance analysis. Distributed tracing enables developers and operations teams to track requests as they move across multiple services, providing insight into the behaviour and performance of individual components and the system as a whole.
 
-The abstraction layers provided by Spring Boot, Micrometer and Brave make the implementation of distributed tracing functionality relatively simple and enables consistency whether the services are communicating via HTTP or a Messaging system such as Kafka. 
-
+The abstraction layers provided by Spring Boot, Micrometer and Brave make the implementation of distributed tracing functionality relatively simple and enables consistency whether the services are communicating via HTTP or a Messaging system such as Kafka. The upgrade to Spring Boot 4 and Java 25 required some adjustments — notably the new `spring-boot-starter-zipkin` dependency, updated property names, and the switch to `JacksonJson*` serializers — but the overall tracing model remains the same.

@@ -1,7 +1,5 @@
 package io.contino.pizza.shop.transformer.config;
 
-import brave.Tracing;
-import brave.kafka.streams.KafkaStreamsTracing;
 import io.contino.pizza.shop.transformer.properties.ServiceProperties;
 import io.contino.pizza.shop.transformer.topologies.TopologyService;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -14,8 +12,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerde;
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
+import org.springframework.kafka.support.serializer.JacksonJsonSerde;
 
 import java.util.Properties;
 
@@ -30,22 +28,17 @@ public class Config {
     String applicationName;
 
     @Bean
-    KafkaStreams kafkaStreams(TopologyService topologyService, KafkaStreamsTracing kafkaStreamsTracing) {
+    KafkaStreams kafkaStreams(TopologyService topologyService) {
         Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationName);
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, JsonSerde.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        KafkaStreams kafkaStreams = kafkaStreamsTracing.kafkaStreams(topologyService.topology(), props);
+        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, JacksonJsonSerde.class);
+        props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
+        KafkaStreams kafkaStreams = new KafkaStreams(topologyService.topology(), props);
         Runtime.getRuntime().addShutdownHook(new Thread(kafkaStreams::close));
         kafkaStreams.start();
         return kafkaStreams;
-    }
-
-    @Bean
-    KafkaStreamsTracing kafkaStreamsTracing(Tracing tracing) {
-        return KafkaStreamsTracing.create(tracing);
     }
 
     @Bean

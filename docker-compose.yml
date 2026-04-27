@@ -56,7 +56,7 @@ services:
     container_name: grafana
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - ./config/grafana/:/etc/grafana/provisioning/
 
@@ -68,7 +68,7 @@ services:
     ports:
       - "10010:10010"
     environment:
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     logging:
       driver: loki
@@ -84,7 +84,7 @@ services:
     ports:
       - "10011:10011"
     environment:
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     logging:
       driver: loki
@@ -99,7 +99,7 @@ services:
     ports:
       - "10012:10012"
     environment:
-      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     logging:
       driver: loki
