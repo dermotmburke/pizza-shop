@@ -22,6 +22,13 @@ test: ##Send some test traffic to the web receiver
 	curl -v --location 'http://localhost:10010/' \
 	--header 'Content-Type: application/json' \
 	--data '{"customerId": "12345678912", "pizza": "hawaiian"}'
+	@echo "Polling Zipkin for traces..."
+	@deadline=$$((SECONDS + 60)); \
+	until curl -sf "http://localhost:9411/api/v2/traces?limit=1&lookback=60000" | grep -q '\[{'; do \
+		if [ $$SECONDS -ge $$deadline ]; then echo "Timed out waiting for trace in Zipkin"; exit 1; fi; \
+		echo "waiting for trace..."; sleep 2; \
+	done
+	@echo "Trace found in Zipkin: http://localhost:9411"
 
 health: ##Launch pizza shop stack
 	until curl -sf "http://localhost:10010/actuator/health"; do echo "waiting for healthcheck..."; sleep 5; done

@@ -35,6 +35,16 @@ make test     # send 3 test orders to http://localhost:10010/
 make health   # poll until web-receiver actuator is healthy
 ```
 
+## After Making Changes
+
+Always run a full build and verify with:
+
+```bash
+make up && make test
+```
+
+This rebuilds all modules and Docker images, restarts the stack, and sends test orders and polls Zipkin to confirm traces are flowing end-to-end.
+
 ## Build
 
 ```bash
