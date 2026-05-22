@@ -10,6 +10,12 @@ extraEnvFrom: []
 
 kafka:
   bootstrapServers: kafka:9092
+  securityProtocol: PLAINTEXT
+  truststoreLocation: ""
+  truststorePassword: ""
+  truststoreType: JKS
+  saslMechanism: ""
+  saslJaasConfig: ""
 
 datadog:
   agentZipkinPort: 9411
