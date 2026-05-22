@@ -33,6 +33,32 @@
                     <arguments>-DskipTests -Dmaven.deploy.skip=true</arguments>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>io.kokuwa.maven</groupId>
+                <artifactId>helm-maven-plugin</artifactId>
+                <version>6.17.0</version>
+                <configuration>
+                    <helmVersion>3.17.0</helmVersion>
+                    <chartDirectory>chart</chartDirectory>
+                    <chartVersion>${project.version}</chartVersion>
+                    <appVersion>${project.version}</appVersion>
+                    <uploadRepoOci>
+                        <name>ghcr</name>
+                        <url>oci://ghcr.io/dermotmburke</url>
+                        <username>${env.REGISTRY_USERNAME}</username>
+                        <password>${env.REGISTRY_PASSWORD}</password>
+                    </uploadRepoOci>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>package</goal>
+                            <goal>upload</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
