@@ -1,0 +1,6 @@
+apiVersion: v2
+name: pizza-shop
+description: Pizza shop distributed tracing demo across Spring Boot Kafka microservices
+type: application
+version: 0.1.0
+appVersion: "0.0.1"

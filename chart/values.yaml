@@ -1,0 +1,32 @@
+image:
+  registry: ghcr.io
+  repository: dermotmburke
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+kafka:
+  bootstrapServers: kafka:9092
+
+datadog:
+  agentZipkinPort: 9411
+
+webReceiver:
+  replicaCount: 1
+  port: 10010
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+    className: ""
+    host: pizza-shop.local
+    annotations: {}
+
+transformer:
+  replicaCount: 1
+  port: 10011
+
+repository:
+  replicaCount: 1
+  port: 10012
