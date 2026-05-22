@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>io.contino</groupId>
 	<artifactId>pizza-shop-repository</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.1-SNAPSHOT</version>
 	<properties>
 		<java.version>25</java.version>
 	</properties>
@@ -18,12 +18,12 @@
 		<dependency>
 			<groupId>io.contino</groupId>
 			<artifactId>pizza-shop-tracing</artifactId>
-			<version>0.0.1</version>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>io.contino</groupId>
 			<artifactId>pizza-shop-models</artifactId>
-			<version>0.0.1</version>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -78,15 +78,22 @@
 						<image>eclipse-temurin:25</image>
 					</from>
 					<to>
-						<image>${project.artifactId}:latest</image>
+						<image>ghcr.io/dermotmburke/${project.artifactId}:${project.version}</image>
+						<tags>
+							<tag>latest</tag>
+						</tags>
+						<auth>
+							<username>${env.REGISTRY_USERNAME}</username>
+							<password>${env.REGISTRY_PASSWORD}</password>
+						</auth>
 					</to>
 				</configuration>
 				<executions>
 					<execution>
-						<id>build-docker-container</id>
-						<phase>install</phase>
+						<id>publish-container</id>
+						<phase>deploy</phase>
 						<goals>
-							<goal>dockerBuild</goal>
+							<goal>build</goal>
 						</goals>
 					</execution>
 				</executions>
