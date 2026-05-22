@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>pizza-shop</artifactId>
     <groupId>io.contino</groupId>
-    <version>0.0.1</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -15,5 +15,27 @@
         <module>pizza-shop-repository</module>
         <module>pizza-shop-transformer</module>
     </modules>
+
+    <scm>
+        <connection>scm:git:https://github.com/dermotmburke/pizza-shop.git</connection>
+        <developerConnection>scm:git:https://github.com/dermotmburke/pizza-shop.git</developerConnection>
+        <url>https://github.com/dermotmburke/pizza-shop</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <goals>deploy</goals>
+                    <arguments>-DskipTests -Dmaven.deploy.skip=true</arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
