@@ -53,6 +53,7 @@
                     <execution>
                         <phase>deploy</phase>
                         <goals>
+                            <goal>init</goal>
                             <goal>package</goal>
                             <goal>upload</goal>
                         </goals>
