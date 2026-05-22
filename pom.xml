@@ -38,6 +38,7 @@
                 <artifactId>helm-maven-plugin</artifactId>
                 <version>6.17.0</version>
                 <configuration>
+                    <helmVersion>3.17.0</helmVersion>
                     <chartDirectory>chart</chartDirectory>
                     <chartVersion>${project.version}</chartVersion>
                     <appVersion>${project.version}</appVersion>
