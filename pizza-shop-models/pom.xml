@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.contino</groupId>
 	<artifactId>pizza-shop-models</artifactId>
-	<version>0.0.9</version>
+	<version>0.0.10-SNAPSHOT</version>
 	<name>pizza-shop-models</name>
 	<properties>
 		<maven.compiler.source>25</maven.compiler.source>
