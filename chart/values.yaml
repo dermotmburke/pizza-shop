@@ -6,6 +6,8 @@ image:
 
 imagePullSecrets: []
 
+extraEnvFrom: []
+
 kafka:
   bootstrapServers: kafka:9092
 
@@ -17,6 +19,7 @@ webReceiver:
   port: 10010
   service:
     type: ClusterIP
+    nodePort: null
   ingress:
     enabled: false
     className: ""

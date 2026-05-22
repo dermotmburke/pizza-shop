@@ -31,6 +31,10 @@ spec:
             - containerPort: {{ .Values.webReceiver.port }}
           env:
             {{- include "pizza-shop.appEnv" . | nindent 12 }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -60,6 +64,9 @@ spec:
   ports:
     - port: {{ .Values.webReceiver.port }}
       targetPort: {{ .Values.webReceiver.port }}
+      {{- if .Values.webReceiver.service.nodePort }}
+      nodePort: {{ .Values.webReceiver.service.nodePort }}
+      {{- end }}
 {{- if .Values.webReceiver.ingress.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
