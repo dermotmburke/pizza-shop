@@ -24,6 +24,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
       - name: Configure Git
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -33,8 +36,22 @@ jobs:
       - name: Release prepare
         run: ./mvnw release:prepare -B -DskipTests
 
+      - name: Read release version
+        id: version
+        run: |
+          VERSION=$(grep "^project.rel.io.contino:pizza-shop=" release.properties | cut -d= -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Release perform
         env:
           REGISTRY_USERNAME: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: ./mvnw release:perform -B
+
+      - name: Package and publish Helm chart
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.version }}/" chart/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ steps.version.outputs.version }}\"/" chart/Chart.yaml
+          helm registry login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+          helm package chart/
+          helm push pizza-shop-${{ steps.version.outputs.version }}.tgz oci://ghcr.io/dermotmburke
