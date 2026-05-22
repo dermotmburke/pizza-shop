@@ -9,8 +9,8 @@ imagePullSecrets: []
 kafka:
   bootstrapServers: kafka:9092
 
-zipkin:
-  endpoint: http://zipkin:9411/api/v2/spans
+datadog:
+  agentZipkinPort: 9411
 
 webReceiver:
   replicaCount: 1

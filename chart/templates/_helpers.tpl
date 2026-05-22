@@ -11,8 +11,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Common app environment variables
 */}}
 {{- define "pizza-shop.appEnv" -}}
+- name: DD_AGENT_HOST
+  valueFrom:
+    fieldRef:
+      fieldPath: status.hostIP
 - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
   value: {{ .Values.kafka.bootstrapServers }}
 - name: MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT
-  value: {{ .Values.zipkin.endpoint }}
+  value: http://$(DD_AGENT_HOST):{{ .Values.datadog.agentZipkinPort }}/api/v2/spans
 {{- end }}
