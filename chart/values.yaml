@@ -4,8 +4,13 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-# Set to the name of a kubernetes.io/dockerconfigjson secret if ghcr.io packages are private
 imagePullSecrets: []
+
+kafka:
+  bootstrapServers: kafka:9092
+
+zipkin:
+  endpoint: http://zipkin:9411/api/v2/spans
 
 webReceiver:
   replicaCount: 1
@@ -25,42 +30,3 @@ transformer:
 repository:
   replicaCount: 1
   port: 10012
-
-zipkin:
-  image: openzipkin/zipkin
-  tag: 3
-  port: 9411
-  service:
-    type: ClusterIP
-
-kafkaUi:
-  enabled: true
-  image: provectuslabs/kafka-ui
-  tag: latest
-  port: 8080
-  service:
-    type: ClusterIP
-
-# Bitnami Kafka subchart overrides
-kafka:
-  replicaCount: 1
-  kraft:
-    enabled: true
-  service:
-    ports:
-      client: 9092
-  zookeeper:
-    enabled: false
-
-# Grafana loki-stack subchart overrides
-loki-stack:
-  loki:
-    enabled: true
-  promtail:
-    enabled: true
-  grafana:
-    enabled: true
-    adminPassword: admin
-    service:
-      type: ClusterIP
-      port: 3000
