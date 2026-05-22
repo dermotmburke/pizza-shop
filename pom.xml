@@ -42,12 +42,12 @@
                     <chartDirectory>chart</chartDirectory>
                     <chartVersion>${project.version}</chartVersion>
                     <appVersion>${project.version}</appVersion>
-                    <uploadRepoOci>
+                    <uploadRepoStable>
                         <name>ghcr</name>
-                        <url>oci://ghcr.io/dermotmburke</url>
+                        <url>ghcr.io/dermotmburke</url>
                         <username>${env.REGISTRY_USERNAME}</username>
                         <password>${env.REGISTRY_PASSWORD}</password>
-                    </uploadRepoOci>
+                    </uploadRepoStable>
                 </configuration>
                 <executions>
                     <execution>
@@ -55,7 +55,7 @@
                         <goals>
                             <goal>init</goal>
                             <goal>package</goal>
-                            <goal>upload</goal>
+                            <goal>push</goal>
                         </goals>
                     </execution>
                 </executions>
