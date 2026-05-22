@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>io.contino</groupId>
 	<artifactId>pizza-shop-repository</artifactId>
-	<version>0.0.6-SNAPSHOT</version>
+	<version>0.0.6</version>
 	<properties>
 		<java.version>25</java.version>
 	</properties>
@@ -17,12 +17,12 @@
 		<dependency>
 			<groupId>io.contino</groupId>
 			<artifactId>pizza-shop-tracing</artifactId>
-			<version>0.0.6-SNAPSHOT</version>
+			<version>0.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>io.contino</groupId>
 			<artifactId>pizza-shop-models</artifactId>
-			<version>0.0.6-SNAPSHOT</version>
+			<version>0.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -99,4 +99,8 @@
 			</plugin>
 		</plugins>
 	</build>
+
+  <scm>
+    <tag>v0.0.6</tag>
+  </scm>
 </project>
