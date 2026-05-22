@@ -36,7 +36,7 @@
             <plugin>
                 <groupId>io.kokuwa.maven</groupId>
                 <artifactId>helm-maven-plugin</artifactId>
-                <version>6.20.0</version>
+                <version>6.17.0</version>
                 <configuration>
                     <chartDirectory>chart</chartDirectory>
                     <chartVersion>${project.version}</chartVersion>
