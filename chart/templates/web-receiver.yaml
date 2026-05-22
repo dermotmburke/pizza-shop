@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web-receiver
+  labels:
+    {{- include "pizza-shop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web-receiver
+spec:
+  replicas: {{ .Values.webReceiver.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/component: web-receiver
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/component: web-receiver
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: web-receiver
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}/pizza-shop-web-receiver:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.webReceiver.port }}
+          env:
+            {{- include "pizza-shop.appEnv" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.webReceiver.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.webReceiver.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-web-receiver
+  labels:
+    {{- include "pizza-shop.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web-receiver
+spec:
+  type: {{ .Values.webReceiver.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/component: web-receiver
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: {{ .Values.webReceiver.port }}
+      targetPort: {{ .Values.webReceiver.port }}
+{{- if .Values.webReceiver.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-web-receiver
+  labels:
+    {{- include "pizza-shop.labels" . | nindent 4 }}
+  {{- with .Values.webReceiver.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.webReceiver.ingress.className }}
+  ingressClassName: {{ .Values.webReceiver.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.webReceiver.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-web-receiver
+                port:
+                  number: {{ .Values.webReceiver.port }}
+{{- end }}
